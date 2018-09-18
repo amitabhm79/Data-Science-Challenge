@@ -1,0 +1,57 @@
+
+import pandas as pd
+import numpy as np
+
+train_file_path = "data_train.csv"
+train_df = pd.read_csv(train_file_path, index_col='id')
+Train_new = train_df.drop(['num18', 'num22', 'cat1', 'cat2', 'cat3', 'cat4', 'cat6', 'cat8', 'cat10', 'cat12'], axis=1)
+Train_new = Train_new.dropna()
+
+from sklearn.model_selection import train_test_split
+X = Train_new.drop('target', axis=1)
+Y = Train_new['target']
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+#splitting into % for training set and 20% for tseting set so we can see our accuracy
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=0)
+
+#Training the model
+from sklearn.linear_model import SGDClassifier
+sg = SGDClassifier(random_state=42)
+sg.fit(X_train,Y_train)
+pred = sg.predict(X_test)
+from sklearn.metrics import classification_report,accuracy_score
+print(classification_report(Y_test, pred))
+print(accuracy_score(Y_test, pred))
+
+#parameter tuning 
+from sklearn.model_selection import GridSearchCV
+model = SGDClassifier(random_state=42)
+params = {'loss': ["hinge", "log", "perceptron"],
+          'alpha':[0.001, 0.0001, 0.00001]}
+clf = GridSearchCV(model, params)
+clf.fit(X_train, Y_train)
+print(clf.best_estimator_)
+
+#final model by taking suitable parameters
+clf = SGDClassifier(random_state=42, loss="hinge", alpha=0.001)
+clf.fit(X_train, Y_train)
+pred = clf.predict(X_test)
+print(classification_report(Y_test, pred))
+print(accuracy_score(Y_test, pred))
+
+df = pd.DataFrame({'Actual' : Y_test, 'Predicted' : pred})
+df.to_csv('df_SGD.csv')
+
+test_file_path = "data_test.csv"
+test_df = pd.read_csv(test_file_path, index_col='id')
+type(test_df)
+Test_new = test_df.drop(['num18', 'num22', 'cat1', 'cat2', 'cat3', 'cat4', 'cat6', 'cat8', 'cat10', 'cat12'], axis=1)
+Test_new = Test_new.dropna()
+X_Test = Test_new
+y_pred=clf.predict(X_Test)
+df = pd.DataFrame({'Predicted' : y_pred})
+Test_new['target'] = y_pred
+Test_new = Test_new.loc[:, Test_new.columns.intersection(['id','target'])]
+Test_new.to_csv('Result_new_1.csv')
